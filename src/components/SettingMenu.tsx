@@ -23,6 +23,13 @@ export const SettingMenu = ({
   const [timeBetweenUnfollows, setTimeBetweenUnfollows] = useState(currentTimings.timeBetweenUnfollows);
   const [timeToWaitAfterFiveUnfollows, setTimeToWaitAfterFiveUnfollows] = useState(currentTimings.timeToWaitAfterFiveUnfollows);
 
+  const applyPreset = (preset: Timings) => {
+    setTimeBetweenSearchCycles(preset.timeBetweenSearchCycles);
+    setTimeToWaitAfterFiveSearchCycles(preset.timeToWaitAfterFiveSearchCycles);
+    setTimeBetweenUnfollows(preset.timeBetweenUnfollows);
+    setTimeToWaitAfterFiveUnfollows(preset.timeToWaitAfterFiveUnfollows);
+  };
+
   const handleSave = (event: any) => {
     event.preventDefault();
     setTimings({
@@ -53,12 +60,59 @@ export const SettingMenu = ({
 
             <div className='settings-content'>
               <div className='row'>
+                <label className='minimun-width'>Speed preset</label>
+                <div className='flex align-center gap-small'>
+                  <button
+                    type='button'
+                    className='btn'
+                    onClick={() =>
+                      applyPreset({
+                        timeBetweenSearchCycles: 1000,
+                        timeToWaitAfterFiveSearchCycles: 6000,
+                        timeBetweenUnfollows: 2200,
+                        timeToWaitAfterFiveUnfollows: 25000,
+                      })
+                    }
+                  >
+                    Safer
+                  </button>
+                  <button
+                    type='button'
+                    className='btn'
+                    onClick={() =>
+                      applyPreset({
+                        timeBetweenSearchCycles: 750,
+                        timeToWaitAfterFiveSearchCycles: 4500,
+                        timeBetweenUnfollows: 1400,
+                        timeToWaitAfterFiveUnfollows: 15000,
+                      })
+                    }
+                  >
+                    Balanced
+                  </button>
+                  <button
+                    type='button'
+                    className='btn'
+                    onClick={() =>
+                      applyPreset({
+                        timeBetweenSearchCycles: 500,
+                        timeToWaitAfterFiveSearchCycles: 2500,
+                        timeBetweenUnfollows: 900,
+                        timeToWaitAfterFiveUnfollows: 8000,
+                      })
+                    }
+                  >
+                    Fast
+                  </button>
+                </div>
+              </div>
+              <div className='row'>
                 <label className='minimun-width'>Default time between search cycles</label>
                 <input
                   type='number'
                   id='searchCycles'
                   name='searchCycles'
-                  min={500}
+                  min={300}
                   max={999999}
                   value={timeBetweenSearchCycles}
                   onChange={e => handleInputChange(e, setTimeBetweenSearchCycles)}
@@ -67,12 +121,12 @@ export const SettingMenu = ({
               </div>
 
               <div className='row'>
-                <label className='minimun-width'>Default time to wait after five search cycles</label>
+                <label className='minimun-width'>Default periodic search cooldown</label>
                 <input
                   type='number'
                   id='fiveSearchCycles'
                   name='fiveSearchCycles'
-                  min={4000}
+                  min={2000}
                   max={999999}
                   value={timeToWaitAfterFiveSearchCycles}
                   onChange={e => handleInputChange(e, setTimeToWaitAfterFiveSearchCycles)}
@@ -86,7 +140,7 @@ export const SettingMenu = ({
                   type='number'
                   id='timeBetweenUnfollow'
                   name='timeBetweenUnfollow'
-                  min={1000}
+                  min={800}
                   max={999999}
                   value={timeBetweenUnfollows}
                   onChange={e => handleInputChange(e, setTimeBetweenUnfollows)}
@@ -95,12 +149,12 @@ export const SettingMenu = ({
               </div>
 
               <div className='row'>
-                <label className='minimun-width'>Default time to wait after five unfollows</label>
+                <label className='minimun-width'>Default periodic unfollow cooldown</label>
                 <input
                   type='number'
                   id='timeAfterFiveUnfollows'
                   name='timeAfterFiveUnfollows'
-                  min={70000}
+                  min={5000}
                   max={999999}
                   value={timeToWaitAfterFiveUnfollows}
                   onChange={e => handleInputChange(e, setTimeToWaitAfterFiveUnfollows)}

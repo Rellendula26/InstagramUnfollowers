@@ -2,7 +2,8 @@ import React from 'react';
 import { assertUnreachable, getCurrentPageUnfollowers, getMaxPage, getUsersForDisplay, isWithoutProfilePicture } from '../utils/utils';
 import { State } from '../model/state';
 import { UserNode } from '../model/user';
-import { WHITELISTED_RESULTS_STORAGE_KEY } from '../constants/constants';
+import { SMART_QUEUE_MIN_FOLLOW_DAYS, WHITELISTED_RESULTS_STORAGE_KEY } from '../constants/constants';
+import { loadFollowHistory } from '../utils/whitelist-manager';
 
 
 export interface SearchingProps {
@@ -46,6 +47,7 @@ export const Searching = ({
 
   const PERSONAL_ALT_KEYWORDS = ['spam', 'dump', 'finsta', 'alt', 'private', 'priv', 'closefriends', 'cf'];
   const PUBLIC_ACCOUNT_KEYWORDS = ['official', 'news', 'media', 'music', 'tv', 'shop', 'store', 'brand', 'fanpage', 'meme', 'quotes'];
+  const followHistory = loadFollowHistory();
 
   const hasKeyword = (value: string, keywords: readonly string[]) => {
     const normalized = value.toLowerCase();
@@ -60,6 +62,19 @@ export const Searching = ({
 
   const isLikelyImportant = (user: UserNode) =>
     user.follows_viewer || user.is_private || user.is_verified || isLikelyPersonalAlt(user);
+
+  const getFollowAgeDays = (user: UserNode): number | null => {
+    const record = followHistory[user.id];
+    if (record === undefined) {
+      return null;
+    }
+    return Math.floor((Date.now() - record.firstSeenAt) / (1000 * 60 * 60 * 24));
+  };
+
+  const hasEnoughFollowAge = (user: UserNode): boolean => {
+    const ageDays = getFollowAgeDays(user);
+    return ageDays !== null && ageDays >= SMART_QUEUE_MIN_FOLLOW_DAYS;
+  };
 
   const addUsersToSelection = (usersToAdd: readonly UserNode[]) => {
     const currentIds = new Set(state.selectedResults.map(user => user.id));
@@ -144,12 +159,30 @@ export const Searching = ({
               title='Queue non-followers while skipping important accounts'
               onClick={() => {
                 const smartQueue = usersForDisplay.filter(user =>
-                  !user.follows_viewer && !isLikelyImportant(user),
+                  !user.follows_viewer
+                  && !isLikelyImportant(user)
+                  && hasEnoughFollowAge(user),
                 );
+                if (smartQueue.length === 0) {
+                  alert(`No users matched strict Smart Queue criteria yet.\n\nTry "Smart Queue + Recent" or scan again after ${SMART_QUEUE_MIN_FOLLOW_DAYS} days to build follow-age history.`);
+                  return;
+                }
                 addUsersToSelection(smartQueue);
               }}
             >
               Smart Queue
+            </button>
+            <button
+              className='button-secondary'
+              title='Queue non-followers while skipping important accounts, including recent/unknown follow age'
+              onClick={() => {
+                const smartQueueInclusive = usersForDisplay.filter(user =>
+                  !user.follows_viewer && !isLikelyImportant(user),
+                );
+                addUsersToSelection(smartQueueInclusive);
+              }}
+            >
+              Smart Queue + Recent
             </button>
             <button
               className='button-secondary'
@@ -263,6 +296,10 @@ export const Searching = ({
             </p>
             <p>
               <span>Likely alts</span><strong>{usersForDisplay.filter(user => isLikelyPersonalAlt(user)).length}</strong>
+            </p>
+            <p>
+              <span>Smart-ready ({SMART_QUEUE_MIN_FOLLOW_DAYS}d+)</span>
+              <strong>{usersForDisplay.filter(user => !user.follows_viewer && !isLikelyImportant(user) && hasEnoughFollowAge(user)).length}</strong>
             </p>
           </div>
 

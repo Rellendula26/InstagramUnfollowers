@@ -10,7 +10,10 @@ import { UserUncheckIcon } from './components/icons/UserUncheckIcon';
 import { DEFAULT_TIME_BETWEEN_SEARCH_CYCLES,
   DEFAULT_TIME_BETWEEN_UNFOLLOWS,
   DEFAULT_TIME_TO_WAIT_AFTER_FIVE_SEARCH_CYCLES,
-  DEFAULT_TIME_TO_WAIT_AFTER_FIVE_UNFOLLOWS, INSTAGRAM_HOSTNAME } from './constants/constants';
+  DEFAULT_TIME_TO_WAIT_AFTER_FIVE_UNFOLLOWS,
+  INSTAGRAM_HOSTNAME,
+  SEARCH_COOLDOWN_EVERY_CYCLES,
+  UNFOLLOW_COOLDOWN_EVERY_ACTIONS } from './constants/constants';
 import {
   assertUnreachable,
   getCookie,
@@ -23,7 +26,7 @@ import { Searching } from './components/Searching';
 import { Toolbar } from './components/Toolbar';
 import { Unfollowing } from './components/Unfollowing';
 import { Timings } from './model/timings';
-import { loadWhitelist, saveWhitelist, loadTimings, saveTimings } from './utils/whitelist-manager';
+import { loadWhitelist, saveWhitelist, loadTimings, saveTimings, updateFollowHistory } from './utils/whitelist-manager';
 
 const LOCAL_PREVIEW_HOSTS = new Set(['localhost', '127.0.0.1', '::1']);
 const isLocalPreview = LOCAL_PREVIEW_HOSTS.has(location.hostname);
@@ -387,25 +390,28 @@ function App() {
         }
 
         // Human-like behavior: Micro-pause between fetching chunks
-        const microPause = Math.floor(Math.random() * 1500) + 500; // 500ms - 2000ms
+        const microPause = Math.floor(Math.random() * 450) + 150; // 150ms - 600ms
         await sleep(microPause);
 
-        // Standard delay between cycles
-        await sleep(Math.floor(Math.random() * (timings.timeBetweenSearchCycles - timings.timeBetweenSearchCycles * 0.7)) + timings.timeBetweenSearchCycles);
+        // Standard delay between cycles with lower jitter to keep pacing predictable.
+        const searchDelayBase = Math.floor(timings.timeBetweenSearchCycles * 0.7);
+        const searchDelayJitter = Math.floor(Math.random() * Math.max(1, Math.floor(timings.timeBetweenSearchCycles * 0.3)));
+        await sleep(searchDelayBase + searchDelayJitter);
 
         scrollCycle++;
-        if (scrollCycle > 6) {
+        if (scrollCycle >= SEARCH_COOLDOWN_EVERY_CYCLES) {
           scrollCycle = 0;
           // Variable long sleep to avoid patterns
           const longSleepVar = Math.max(
             0,
-            timings.timeToWaitAfterFiveSearchCycles + (Math.random() * 10000 - 5000), // +/- 5 seconds
+            timings.timeToWaitAfterFiveSearchCycles + (Math.random() * 2000 - 1000), // +/- 1 second
           );
           setToast({ show: true, text: `Sleeping ${Math.round(longSleepVar / 1000)} seconds to prevent getting temp blocked` });
           await sleep(longSleepVar);
         }
         setToast({ show: false });
       }
+      updateFollowHistory(results);
       setToast({ show: true, text: 'Scanning completed!' });
     };
     scan();
@@ -479,10 +485,12 @@ function App() {
         if (user === state.selectedResults[state.selectedResults.length - 1]) {
           break;
         }
-        await sleep(Math.floor(Math.random() * (timings.timeBetweenUnfollows * 1.2 - timings.timeBetweenUnfollows)) + timings.timeBetweenUnfollows);
+        const unfollowDelayBase = Math.floor(timings.timeBetweenUnfollows * 0.85);
+        const unfollowDelayJitter = Math.floor(Math.random() * Math.max(1, Math.floor(timings.timeBetweenUnfollows * 0.25)));
+        await sleep(unfollowDelayBase + unfollowDelayJitter);
 
-        if (counter % 5 === 0) {
-          setToast({ show: true, text: `Sleeping ${timings.timeToWaitAfterFiveUnfollows / 60000 } minutes to prevent getting temp blocked` });
+        if (counter % UNFOLLOW_COOLDOWN_EVERY_ACTIONS === 0) {
+          setToast({ show: true, text: `Short cooldown (${Math.round(timings.timeToWaitAfterFiveUnfollows / 1000)}s) to reduce temp-block risk` });
           await sleep(timings.timeToWaitAfterFiveUnfollows);
         }
         setToast({ show: false });

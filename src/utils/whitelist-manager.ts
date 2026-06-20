@@ -1,6 +1,6 @@
 import { UserNode } from '../model/user';
 import { Timings } from '../model/timings';
-import { WHITELISTED_RESULTS_STORAGE_KEY, TIMINGS_STORAGE_KEY } from '../constants/constants';
+import { FOLLOW_HISTORY_STORAGE_KEY, WHITELISTED_RESULTS_STORAGE_KEY, TIMINGS_STORAGE_KEY } from '../constants/constants';
 
 /**
  * Export whitelist to a JSON file
@@ -96,6 +96,69 @@ export const loadWhitelist = (): readonly UserNode[] => {
  */
 export const saveWhitelist = (whitelistedUsers: readonly UserNode[]): void => {
   localStorage.setItem(WHITELISTED_RESULTS_STORAGE_KEY, JSON.stringify(whitelistedUsers));
+};
+
+export interface FollowHistoryRecord {
+  firstSeenAt: number;
+  lastSeenAt: number;
+  username: string;
+}
+
+export type FollowHistory = Partial<Record<string, FollowHistoryRecord>>;
+
+/**
+ * Load follow history from localStorage
+ */
+export const loadFollowHistory = (): FollowHistory => {
+  const historyFromStorage = localStorage.getItem(FOLLOW_HISTORY_STORAGE_KEY);
+  if (historyFromStorage === null) {
+    return {};
+  }
+  try {
+    const parsedHistory: unknown = JSON.parse(historyFromStorage);
+    if (typeof parsedHistory !== 'object' || parsedHistory === null || Array.isArray(parsedHistory)) {
+      return {};
+    }
+    return parsedHistory as FollowHistory;
+  } catch {
+    return {};
+  }
+};
+
+/**
+ * Save follow history to localStorage
+ */
+export const saveFollowHistory = (history: FollowHistory): void => {
+  localStorage.setItem(FOLLOW_HISTORY_STORAGE_KEY, JSON.stringify(history));
+};
+
+/**
+ * Track first-seen and last-seen timestamps for scanned follows.
+ */
+export const updateFollowHistory = (users: readonly UserNode[]): FollowHistory => {
+  const now = Date.now();
+  const history = loadFollowHistory();
+  const nextHistory: FollowHistory = { ...history };
+
+  for (const user of users) {
+    const existing = nextHistory[user.id];
+    if (existing === undefined) {
+      nextHistory[user.id] = {
+        firstSeenAt: now,
+        lastSeenAt: now,
+        username: user.username,
+      };
+      continue;
+    }
+    nextHistory[user.id] = {
+      ...existing,
+      lastSeenAt: now,
+      username: user.username,
+    };
+  }
+
+  saveFollowHistory(nextHistory);
+  return nextHistory;
 };
 
 /**
