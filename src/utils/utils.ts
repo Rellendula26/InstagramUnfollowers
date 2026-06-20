@@ -1,9 +1,9 @@
-import { UserNode } from "../model/user";
-import { UNFOLLOWERS_PER_PAGE, WITHOUT_PROFILE_PICTURE_URL_IDS } from "../constants/constants";
-import { ScanningTab } from "../model/scanning-tab";
-import { ScanningFilter } from "../model/scanning-filter";
-import { UnfollowLogEntry } from "../model/unfollow-log-entry";
-import { UnfollowFilter } from "../model/unfollow-filter";
+import { UserNode } from '../model/user';
+import { UNFOLLOWERS_PER_PAGE, WITHOUT_PROFILE_PICTURE_URL_IDS } from '../constants/constants';
+import { ScanningTab } from '../model/scanning-tab';
+import { ScanningFilter } from '../model/scanning-filter';
+import { UnfollowLogEntry } from '../model/unfollow-log-entry';
+import { UnfollowFilter } from '../model/unfollow-filter';
 
 export async function copyListToClipboard(nonFollowersList: readonly UserNode[]): Promise<void> {
   const sortedList = [...nonFollowersList].sort((a, b) => (a.username > b.username ? 1 : -1));
@@ -18,10 +18,10 @@ export async function copyListToClipboard(nonFollowersList: readonly UserNode[])
 }
 
 export function exportToJSON(users: readonly UserNode[]) {
-  const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(users, null, 2));
+  const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(users, null, 2));
   const downloadAnchorNode = document.createElement('a');
-  downloadAnchorNode.setAttribute("href",     dataStr);
-  downloadAnchorNode.setAttribute("download", "instagram_unfollowers.json");
+  downloadAnchorNode.setAttribute('href', dataStr);
+  downloadAnchorNode.setAttribute('download', 'instagram_unfollowers.json');
   document.body.appendChild(downloadAnchorNode);
   downloadAnchorNode.click();
   downloadAnchorNode.remove();
@@ -35,17 +35,17 @@ export function exportToCSV(users: readonly UserNode[]) {
     `"${user.full_name.replace(/"/g, '""')}"`,
     user.is_verified,
     user.is_private,
-    user.profile_pic_url
+    user.profile_pic_url,
   ]);
-  
-  const csvContent = "data:text/csv;charset=utf-8," 
-    + headers.join(",") + "\n" 
-    + rows.map(e => e.join(",")).join("\n");
+
+  const csvContent = 'data:text/csv;charset=utf-8,'
+    + headers.join(',') + '\n'
+    + rows.map(e => e.join(',')).join('\n');
 
   const encodedUri = encodeURI(csvContent);
-  const link = document.createElement("a");
-  link.setAttribute("href", encodedUri);
-  link.setAttribute("download", "instagram_unfollowers.csv");
+  const link = document.createElement('a');
+  link.setAttribute('href', encodedUri);
+  link.setAttribute('download', 'instagram_unfollowers.csv');
   document.body.appendChild(link);
   link.click();
   link.remove();
@@ -59,6 +59,18 @@ export function getMaxPage(nonFollowersList: readonly UserNode[]): number {
 export function getCurrentPageUnfollowers(nonFollowersList: readonly UserNode[], currentPage: number): readonly UserNode[] {
   const sortedList = [...nonFollowersList].sort((a, b) => (a.username > b.username ? 1 : -1));
   return sortedList.splice(UNFOLLOWERS_PER_PAGE * (currentPage - 1), UNFOLLOWERS_PER_PAGE);
+}
+
+/**
+ * When writing a switch-case with a finite number of cases, use this function in the
+ * `default` clause of switch-case statements for exhaustive checking. This will make
+ * TS complain until ALL cases are handled. For example, if we have a switch-case
+ * in-which we evaluate every possible status of a component's state, if we add this
+ * to the default clause and then add a new status to the state type, TS will complain
+ * and force us to handle it as well, thus avoiding forgetting it.
+ */
+export function assertUnreachable(_value: never): never {
+  throw new Error('Statement should be unreachable');
 }
 
 export function isWithoutProfilePicture(user: UserNode): boolean {
@@ -76,12 +88,12 @@ export function getUsersForDisplay(
   for (const result of results) {
     const isWhitelisted = whitelistedResults.find(user => user.id === result.id) !== undefined;
     switch (currentTab) {
-      case "non_whitelisted":
+      case 'non_whitelisted':
         if (isWhitelisted) {
           continue;
         }
         break;
-      case "whitelisted":
+      case 'whitelisted':
         if (!isWhitelisted) {
           continue;
         }
@@ -107,7 +119,7 @@ export function getUsersForDisplay(
     const userMatchesSearchTerm =
       result.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
       result.full_name.toLowerCase().includes(searchTerm.toLowerCase());
-    if (searchTerm !== "" && !userMatchesSearchTerm) {
+    if (searchTerm !== '' && !userMatchesSearchTerm) {
       continue;
     }
     users.push(result);
@@ -125,24 +137,12 @@ export function getUnfollowLogForDisplay(log: readonly UnfollowLogEntry[], searc
       continue;
     }
     const userMatchesSearchTerm = entry.user.username.toLowerCase().includes(searchTerm.toLowerCase());
-    if (searchTerm !== "" && !userMatchesSearchTerm) {
+    if (searchTerm !== '' && !userMatchesSearchTerm) {
       continue;
     }
     entries.push(entry);
   }
   return entries;
-}
-
-/**
- * When writing a switch-case with a finite number of cases, use this function in the
- * `default` clause of switch-case statements for exhaustive checking. This will make
- * TS complain until ALL cases are handled. For example, if we have a switch-case
- * in-which we evaluate every possible status of a component's state, if we add this
- * to the default clause and then add a new status to the state type, TS will complain
- * and force us to handle it as well, thus avoiding forgetting it.
- */
-export function assertUnreachable(_value: never): never {
-  throw new Error('Statement should be unreachable');
 }
 
 export function sleep(ms: number): Promise<any> {
